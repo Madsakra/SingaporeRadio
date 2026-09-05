@@ -1,0 +1,13 @@
+<resources>
+    <string name="radio_title">收音机\u0020\u0020Radio</string>
+    <string name="choose_station">选择电台 · Choose a station</string>
+    <string name="play_button">▶ PLAY\n播放</string>
+    <string name="stop_button">■\u0020\u0020STOP\u0020\u0020停止</string>
+    <string name="play_accessibility">Play %1$s</string>
+    <string name="stop_accessibility">Stop radio · 停止播放</string>
+    <string name="internet_required">需要网络 · Internet required</string>
+    <string name="stopped">已停止 · Stopped</string>
+    <string name="playing">正在播放 · Playing\n%1$s</string>
+    <string name="connecting">正在连接 · Connecting\n%1$s</string>
+    <string name="buffering">正在缓冲 · Buffering\n%1$s</string>
+</resources>

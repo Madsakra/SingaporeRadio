@@ -1,0 +1,24 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.oai.singaporeradio'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.oai.singaporeradio'
+        minSdk 24
+        targetSdk 35
+        versionCode 3
+        versionName '1.2'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation 'androidx.media3:media3-exoplayer:1.8.0'
+    implementation 'androidx.core:core:1.15.0'
+}

@@ -1,0 +1,8 @@
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/radio_background" />
+    <foreground>
+        <inset android:inset="16%">
+            <bitmap android:src="@mipmap/app_logo" android:gravity="fill" android:filter="true" />
+        </inset>
+    </foreground>
+</adaptive-icon>
