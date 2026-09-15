@@ -10,12 +10,15 @@ The station logos included in `app/src/main/res/drawable-nodpi/` were obtained f
 | LOVE 972 | https://data.melisten.sg/radio/love-972 | https://www16.mediacorp.sg/melisten/radiostation-logos/love-972.png |
 | CAPITAL 958 | https://data.melisten.sg/radio/capital-958 | https://www16.mediacorp.sg/melisten/radiostation-logos/capital-958.png |
 
-The app connects directly to the StreamTheWorld HTTPS endpoints listed in `StationData.java`. No broadcast audio is included in this repository. Names, trademarks, logos, and broadcast content remain the property of their respective owners. Attribution is not a grant of permission; public redistribution rights have not been verified. This project is not affiliated with or endorsed by the broadcasters.
+New station rows use an original neutral vector radio icon (`ic_radio.xml`); no additional broadcaster logos were copied.
+
+The app connects directly to the StreamTheWorld and BBC HTTPS endpoints listed in `StationData.java`. The catalog includes Mediacorp, SPH Media, BBC World Service and So Drama! Entertainment/Kakee. Source pages and verification results are listed in [docs/STATIONS.md](docs/STATIONS.md). No broadcast audio is included in this repository. Names, trademarks, logos, and broadcast content remain the property of their respective owners. Attribution is not a grant of permission; public redistribution rights have not been verified. This project is not affiliated with or endorsed by the broadcasters.
 
 ## Build and playback dependencies
 
 - AndroidX Media3 ExoPlayer: https://github.com/androidx/media (Apache License 2.0)
 - AndroidX Core: https://android.googlesource.com/platform/frameworks/support/ (Apache License 2.0)
+- Robolectric and JUnit (test-only): https://github.com/robolectric/robolectric (MIT) and https://github.com/junit-team/junit4 (EPL 1.0)
 - Gradle wrapper: https://github.com/gradle/gradle (Apache License 2.0; license notice in wrapper scripts)
 
 Each dependency and its transitive dependencies remain subject to their own license terms and notices.

@@ -25,7 +25,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Presentation only: playback commands and RadioService remain unchanged. */
+/** Accessible station browser backed by the shared station catalog. */
 public class MainActivity extends Activity {
     private static final int BACKGROUND = Color.rgb(227, 229, 228);
     private static final int SURFACE = Color.rgb(240, 241, 239);
@@ -40,6 +40,13 @@ public class MainActivity extends Activity {
     private TextView statusSymbol;
     private final Map<String, LinearLayout> stationRows = new LinkedHashMap<>();
     private boolean narrow;
+    private boolean stacked;
+    private LinearLayout stationList;
+    private ScrollView scroller;
+    private TextView stationCount;
+    private Spinner languageFilter;
+    private int filterIndex;
+    private static final String STATE_FILTER = "station_filter";
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
             if (RadioService.BROADCAST_STATUS.equals(intent.getAction())) {
@@ -53,11 +60,13 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 10);
         }
+        filterIndex = savedInstanceState == null ? 0 : savedInstanceState.getInt(STATE_FILTER, 0);
         buildUi();
     }
 
     private void buildUi() {
         narrow = getResources().getConfiguration().screenWidthDp <= 370;
+        stacked = narrow || getResources().getConfiguration().fontScale >= 1.3f;
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(BACKGROUND);
         getWindow().setNavigationBarColor(BACKGROUND);
@@ -67,13 +76,14 @@ public class MainActivity extends Activity {
         int side = dp(narrow ? 12 : 16);
         ViewCompat.setOnApplyWindowInsetsListener(root, (view, windowInsets) -> {
             Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
-            view.setPadding(side + bars.left, dp(24) + bars.top, side + bars.right, dp(10) + bars.bottom);
+            view.setPadding(side + bars.left, dp(12) + bars.top, side + bars.right, dp(10) + bars.bottom);
             return windowInsets;
         });
 
-        // The list can scroll on short screens or at large font sizes; STOP stays visible.
-        ScrollView scroller = new ScrollView(this);
-        scroller.setVerticalScrollBarEnabled(false);
+        // Heading, filters and stations share the scroll area so short screens keep room for playback controls.
+        scroller = new ScrollView(this);
+        scroller.setId(R.id.station_scroller);
+        scroller.setVerticalScrollBarEnabled(true);
         scroller.setClipToPadding(false);
         LinearLayout content = column();
         scroller.addView(content, new ScrollView.LayoutParams(-1, -2));
@@ -88,7 +98,7 @@ public class MainActivity extends Activity {
         TextView instruction = label(getString(R.string.choose_station), 18, MUTED, false);
         LinearLayout.LayoutParams instructionParams = new LinearLayout.LayoutParams(-1, -2);
         instructionParams.topMargin = dp(8);
-        instructionParams.bottomMargin = dp(18);
+        instructionParams.bottomMargin = dp(8);
         content.addView(instruction, instructionParams);
 
         LinearLayout state = new LinearLayout(this);
@@ -99,24 +109,52 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams symbolParams = new LinearLayout.LayoutParams(-2, -2);
         symbolParams.rightMargin = dp(10);
         state.addView(statusSymbol, symbolParams);
-        status = label("", 20, TEXT, true);
+        status = label("", 18, TEXT, true);
+        status.setId(R.id.playback_status);
+        status.setMaxLines(3);
+        status.setEllipsize(android.text.TextUtils.TruncateAt.END);
         status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         state.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams stateParams = new LinearLayout.LayoutParams(-1, -2);
-        stateParams.bottomMargin = dp(16);
-        content.addView(state, stateParams);
+        stateParams.bottomMargin = dp(8);
 
-        stationRows.clear();
-        for (int index = 0; index < StationData.ALL.size(); index++) {
-            Station station = StationData.ALL.get(index);
-            LinearLayout row = buildStationRow(station);
-            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
-            if (index > 0) rowParams.topMargin = dp(12);
-            content.addView(row, rowParams);
-            stationRows.put(station.name, row);
-        }
 
-        Button stop = actionButton(getString(R.string.stop_button), 30, RED, 94, 16);
+        languageFilter = new Spinner(this);
+        languageFilter.setId(R.id.station_filter);
+        languageFilter.setContentDescription(getString(R.string.filter_language));
+        languageFilter.setMinimumHeight(dp(48));
+        ArrayAdapter<CharSequence> filterAdapter = ArrayAdapter.createFromResource(this,
+            R.array.station_filters, android.R.layout.simple_spinner_item);
+        filterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        languageFilter.setAdapter(filterAdapter);
+        if (filterIndex < 0 || filterIndex >= filterAdapter.getCount()) filterIndex = 0;
+        languageFilter.setSelection(filterIndex);
+        content.addView(languageFilter, new LinearLayout.LayoutParams(-1, -2));
+
+        stationCount = label("", 16, MUTED, false);
+        stationCount.setId(R.id.station_count);
+        content.addView(stationCount, new LinearLayout.LayoutParams(-1, -2));
+
+        // Playback status and STOP sit below the scrolling content.
+        stationList = column();
+        stationList.setId(R.id.station_list);
+        stationList.setPadding(0, dp(8), 0, dp(8));
+        content.addView(stationList, new LinearLayout.LayoutParams(-1, -2));
+        renderStations();
+        languageFilter.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (filterIndex == position) return;
+                filterIndex = position;
+                renderStations();
+                scroller.scrollTo(0, 0);
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+        });
+
+        root.addView(state, stateParams);
+
+        Button stop = actionButton(getString(R.string.stop_button), 26, RED, 72, 16);
+        stop.setId(R.id.stop_button);
         stop.setContentDescription(getString(R.string.stop_accessibility));
         SpannableString stopText = new SpannableString(getString(R.string.stop_button));
         int chinese = stopText.toString().indexOf("停止");
@@ -128,12 +166,12 @@ public class MainActivity extends Activity {
             showStatus("Stopped");
         });
         LinearLayout.LayoutParams stopParams = new LinearLayout.LayoutParams(-1, -2);
-        stopParams.topMargin = dp(24);
+        stopParams.topMargin = dp(8);
         root.addView(stop, stopParams);
         TextView footer = label(getString(R.string.internet_required), 16, MUTED, false);
         footer.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams footerParams = new LinearLayout.LayoutParams(-1, -2);
-        footerParams.topMargin = dp(16);
+        footerParams.topMargin = dp(8);
         root.addView(footer, footerParams);
 
         setContentView(root);
@@ -144,37 +182,57 @@ public class MainActivity extends Activity {
         showStatus(RadioService.getLatestStatus());
     }
 
+    private void renderStations() {
+        Station.Language language = filterIndex == 0 ? null : Station.Language.values()[filterIndex - 1];
+        java.util.List<Station> stations = StationData.forLanguage(language);
+        stationList.removeAllViews();
+        stationRows.clear();
+        for (Station station : stations) {
+            LinearLayout row = buildStationRow(station);
+            row.setTag(station.name);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+            if (stationList.getChildCount() > 0) params.topMargin = dp(12);
+            stationList.addView(row, params);
+            stationRows.put(station.name, row);
+        }
+        stationCount.setText(getResources().getQuantityString(R.plurals.station_count, stations.size(), stations.size()));
+        showStatus(RadioService.getLatestStatus());
+    }
+
     private LinearLayout buildStationRow(Station station) {
         LinearLayout row = new LinearLayout(this);
+        row.setOrientation(stacked ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setMinimumHeight(dp(128));
-        row.setPadding(dp(narrow ? 10 : 12), dp(16), dp(narrow ? 10 : 12), dp(16));
+        row.setPadding(dp(12), dp(16), dp(12), dp(16));
         row.setBackground(rounded(SURFACE, 16, BORDER));
+
+        LinearLayout identity = new LinearLayout(this);
+        identity.setGravity(Gravity.CENTER_VERTICAL);
         ImageView logo = new ImageView(this);
-        int imageResource = station.name.equals("YES 933") ? R.drawable.station_yes_933
-            : station.name.equals("LOVE 972") ? R.drawable.station_love_972 : R.drawable.station_capital_958;
-        logo.setImageResource(imageResource);
+        logo.setImageResource(stationLogo(station));
         logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
         logo.setBackground(rounded(station.name.equals("YES 933") ? Color.rgb(40, 49, 44) : Color.rgb(246, 245, 240), 12, null));
         logo.setClipToOutline(true);
         logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(dp(narrow ? 54 : 64), dp(narrow ? 54 : 64));
-        logoParams.rightMargin = dp(narrow ? 8 : 10);
-        row.addView(logo, logoParams);
+        LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(dp(54), dp(54));
+        logoParams.rightMargin = dp(10);
+        identity.addView(logo, logoParams);
 
-        LinearLayout identity = column();
-        int numberIndex = station.name.lastIndexOf(' ') + 1;
-        identity.addView(label(station.name.substring(0, numberIndex).trim(), narrow ? 15 : 16, TEXT, true));
-        identity.addView(label(station.name.substring(numberIndex), 34, TEXT, true));
-        TextView frequency = label(station.subtitle.split(" • ")[0], 16, MUTED, false);
-        LinearLayout.LayoutParams frequencyParams = new LinearLayout.LayoutParams(-1, -2);
-        frequencyParams.topMargin = dp(3);
-        identity.addView(frequency, frequencyParams);
-        LinearLayout.LayoutParams identityParams = new LinearLayout.LayoutParams(0, -2, 1);
-        identityParams.rightMargin = dp(narrow ? 8 : 10);
+        LinearLayout text = column();
+        // Whole names wrap naturally, including numeric names and digital channel names.
+        text.addView(label(station.name, 24, TEXT, true), new LinearLayout.LayoutParams(-1, -2));
+        TextView subtitle = label(station.subtitle, 16, MUTED, false);
+        LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(-1, -2);
+        subtitleParams.topMargin = dp(4);
+        text.addView(subtitle, subtitleParams);
+        identity.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams identityParams = stacked
+            ? new LinearLayout.LayoutParams(-1, -2) : new LinearLayout.LayoutParams(0, -2, 1);
+        if (!stacked) identityParams.rightMargin = dp(10);
         row.addView(identity, identityParams);
 
-        Button play = actionButton(getString(R.string.play_button), narrow ? 22 : 24, GREEN, 76, 12);
+        Button play = actionButton(getString(R.string.play_button), 24, GREEN, 76, 12);
         SpannableString playText = new SpannableString(getString(R.string.play_button));
         int secondLine = playText.toString().indexOf('\n') + 1;
         playText.setSpan(new AbsoluteSizeSpan(sp(20)), secondLine, playText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -182,8 +240,19 @@ public class MainActivity extends Activity {
         play.setLineSpacing(dp(5), 1f);
         play.setContentDescription(getString(R.string.play_accessibility, station.name));
         play.setOnClickListener(v -> playStation(station));
-        row.addView(play, new LinearLayout.LayoutParams(dp(narrow ? 100 : 112), -2));
+        LinearLayout.LayoutParams playParams = new LinearLayout.LayoutParams(stacked ? -1 : dp(112), -2);
+        if (stacked) playParams.topMargin = dp(12);
+        row.addView(play, playParams);
         return row;
+    }
+
+    private int stationLogo(Station station) {
+        switch (station.name) {
+            case "YES 933": return R.drawable.station_yes_933;
+            case "LOVE 972": return R.drawable.station_love_972;
+            case "CAPITAL 958": return R.drawable.station_capital_958;
+            default: return R.drawable.ic_radio;
+        }
     }
 
     private void showStatus(String message) {
@@ -249,7 +318,7 @@ public class MainActivity extends Activity {
         label.setTextColor(color);
         label.setTypeface(Typeface.create("sans-serif", bold ? Typeface.BOLD : Typeface.NORMAL));
         label.setIncludeFontPadding(false);
-        if (Build.VERSION.SDK_INT >= 28) label.setFallbackLineSpacing(false);
+        if (Build.VERSION.SDK_INT >= 28) label.setFallbackLineSpacing(true);
         return label;
     }
 
@@ -268,6 +337,11 @@ public class MainActivity extends Activity {
         androidx.core.content.ContextCompat.registerReceiver(this, receiver, filter,
             androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
         showStatus(RadioService.getLatestStatus());
+    }
+
+    @Override protected void onSaveInstanceState(Bundle state) {
+        state.putInt(STATE_FILTER, filterIndex);
+        super.onSaveInstanceState(state);
     }
 
     @Override protected void onStop() {
