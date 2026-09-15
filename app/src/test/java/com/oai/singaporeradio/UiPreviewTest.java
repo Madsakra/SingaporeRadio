@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Spinner;
+import android.widget.ScrollView;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -28,6 +29,16 @@ public class UiPreviewTest {
             MainActivity activity = controller.get();
             Spinner filter = activity.findViewById(R.id.station_filter);
             capture(activity, "all-stations", 411, 891);
+            ScrollView scroller = activity.findViewById(R.id.station_scroller);
+            int lastScroll = scroller.getChildAt(0).getHeight() - scroller.getHeight();
+            int step = scroller.getHeight() - 100;
+            for (int offset = step, page = 2; offset < lastScroll + step; offset += step, page++) {
+                scroller.scrollTo(0, Math.min(offset, lastScroll));
+                capture(activity, "all-stations-" + page, 411, 891);
+            }
+            filter.setSelection(2);
+            shadowOf(android.os.Looper.getMainLooper()).idle();
+            capture(activity, "english", 411, 891);
             filter.setSelection(3);
             shadowOf(android.os.Looper.getMainLooper()).idle();
             capture(activity, "malay", 411, 891);

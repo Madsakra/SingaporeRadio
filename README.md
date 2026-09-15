@@ -5,12 +5,13 @@ A simple Android radio player built for older listeners and everyday family use.
 The app adds no ads, analytics, subscriptions, or sign-in. **Live radio needs an internet connection**; this is not an offline radio receiver. Advertisements within a station's broadcast may still be heard.
 
 <img src="docs/screenshot.png" alt="Singapore Radio: accessible station list, language filter, large green PLAY buttons and a red STOP button" width="340">
+<img src="docs/station-logos.png" alt="English station filter showing MONEY FM, GOLD 905, ONE FM and Kiss92 with their official logos" width="340">
 
 ## Features
 
 - A shared catalog covering Mediacorp, SPH Media, BBC World Service and Kakee.
 - Language filters for Mandarin, English, Malay, Tamil, Cantonese and Korean; bilingual stations appear in both relevant filters.
-- Full station names, FM/online labels and language information. The original three logos remain; other stations use a neutral radio icon.
+- Full station names, FM/online labels and language information. Official station and channel logos for all 26 entries are bundled in the app and appear without extra network requests.
 - Light grey background, large green PLAY buttons, and a large red STOP button.
 - English and Chinese controls, wrapping station names and stacked controls on narrow screens or at large font sizes.
 - A scrolling station list with playback status and STOP kept outside the scroll area.

@@ -13,8 +13,8 @@ Status: development version 1.3 (code 4), prepared for testing; not published.
 ## Before submission
 
 1. Confirm permission to offer the broadcaster streams in a public third-party app
-   and to use the three existing logos. Free distribution and a publicly accessible
-   stream do not establish permission. Keep the app and listing clearly independent.
+   and to use the included station and channel logos. Free distribution and a
+   publicly accessible stream do not establish permission. Keep the app and listing clearly independent.
 2. Test actual audio on a Singapore phone, particularly POWER 98 Mixtape, POWER 98
    EDM Club Hits, 88.3JIA Trending Hits and 88.3JIA K-Pop, which returned HTTP 403 in
    the current network check. Also test station switching, screen-off playback,
