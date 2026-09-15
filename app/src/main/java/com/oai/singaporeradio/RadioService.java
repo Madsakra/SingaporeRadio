@@ -73,7 +73,7 @@ public class RadioService extends Service {
         }
         sendStatus("Connecting to " + currentName + "…");
         DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
-            .setUserAgent("SingaporeRadio/1.1")
+            .setUserAgent("SingaporeRadio/1.3")
             .setConnectTimeoutMs(10000)
             .setReadTimeoutMs(10000);
         final ExoPlayer active = new ExoPlayer.Builder(this)
@@ -116,7 +116,7 @@ public class RadioService extends Service {
             @Override public void onPlayerError(PlaybackException error) {
                 if (player != active) return;
                 Log.e("SingaporeRadio", "Playback failed: " + error.getErrorCodeName(), error);
-                fail("Unable to play " + currentName + ". Check your connection or try another station.");
+                fail("Unable to play " + currentName + ". The stream may be unavailable or region-restricted. Try another station.");
             }
         });
         handler.postDelayed(connectionTimeout, 20000);

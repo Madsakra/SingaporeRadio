@@ -1,0 +1,8 @@
+<resources>
+    <item name="station_filter" type="id" />
+    <item name="station_count" type="id" />
+    <item name="station_list" type="id" />
+    <item name="station_scroller" type="id" />
+    <item name="playback_status" type="id" />
+    <item name="stop_button" type="id" />
+</resources>

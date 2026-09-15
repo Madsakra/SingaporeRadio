@@ -10,4 +10,18 @@
     <string name="playing">正在播放 · Playing\n%1$s</string>
     <string name="connecting">正在连接 · Connecting\n%1$s</string>
     <string name="buffering">正在缓冲 · Buffering\n%1$s</string>
+    <string name="filter_language">语言 · Language</string>
+    <plurals name="station_count">
+        <item quantity="one">%1$d 个电台 · %1$d station</item>
+        <item quantity="other">%1$d 个电台 · %1$d stations</item>
+    </plurals>
+    <string-array name="station_filters">
+        <item>全部 · All stations</item>
+        <item>中文 · Mandarin</item>
+        <item>English</item>
+        <item>Melayu · Malay</item>
+        <item>தமிழ் · Tamil</item>
+        <item>粤语 · Cantonese</item>
+        <item>한국어 · Korean</item>
+    </string-array>
 </resources>

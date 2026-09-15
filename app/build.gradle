@@ -2,14 +2,18 @@ plugins { id 'com.android.application' }
 
 android {
     namespace 'com.oai.singaporeradio'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.oai.singaporeradio'
         minSdk 24
-        targetSdk 35
-        versionCode 3
-        versionName '1.2'
+        targetSdk 36
+        versionCode 4
+        versionName '1.3'
+    }
+
+    testOptions {
+        unitTests.includeAndroidResources = true
     }
 
     compileOptions {
@@ -21,4 +25,6 @@ android {
 dependencies {
     implementation 'androidx.media3:media3-exoplayer:1.8.0'
     implementation 'androidx.core:core:1.15.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.16.1'
 }
