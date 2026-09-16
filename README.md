@@ -76,7 +76,7 @@ create signing keys automatically.
 
 ## Project details
 
-- Current version: **1.4.1** (version code 6)
+- Current version: **1.4.2** (version code 7)
 - Android 7.0 (API 24) or newer; targets Android 16 (API 36)
 - Package: `com.oai.singaporeradio`
 - Native Java Android UI
@@ -84,8 +84,13 @@ create signing keys automatically.
 - `MainActivity.java`: station browser, favourites, search, language picker and Focus Player
 - `RadioUi.java`, `StationPresentation.java`, `PlaybackPresentation.java`: frontend styling and presentation of existing catalog/service data
 - `LoadingRingView.java`: quiet loading animation with reduced-motion and visibility handling
+- `PlayerTransition.java`: gentle player navigation with lifecycle and reduced-motion handling
 - `RadioService.java`: streaming, background playback, audio focus, and connection handling
 - `StationData.java`: immutable station catalog, language filters and broadcaster stream endpoints
+
+Version 1.4.2 adds the approved 280 ms rise-and-fade transition when opening the
+Focus Player, with a 224 ms return to browsing. Playback continues through
+navigation, and Android's disabled-animation setting skips the transition.
 
 Version 1.4.1 adds a quiet loading ring around the Focus Player artwork and inside
 the bottom Stop shortcut while connecting or buffering. Stop remains usable;

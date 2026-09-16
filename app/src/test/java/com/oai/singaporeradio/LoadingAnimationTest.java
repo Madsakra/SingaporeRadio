@@ -70,6 +70,7 @@ public class LoadingAnimationTest {
             list(activity).findViewWithTag("play:YES 933").performClick();
             assertEquals(RadioService.ACTION_PLAY, shadowOf(activity).getNextStartedService().getAction());
             activity.findViewById(R.id.browse_stations).performClick();
+            advanceFrames(300);
             for (String message : new String[]{"Connecting to YES 933…", "Buffering YES 933…"}) {
                 status(activity, message);
                 layout(activity, 411, 891);

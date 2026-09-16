@@ -214,12 +214,22 @@ public class MainActivityTest {
         // Advance animation frames explicitly; automatic vsync never idles for a repeating ring.
         org.robolectric.shadows.ShadowChoreographer.setPaused(true);
         org.robolectric.shadows.ShadowChoreographer.setFrameDelay(java.time.Duration.ofMillis(16));
+        advanceFrames(32);
         // Offscreen Robolectric windows need the visibility signal normally sent by WindowManager.
         Object root = org.robolectric.util.ReflectionHelpers.callInstanceMethod(
             activity.getWindow().getDecorView(), "getViewRootImpl");
         org.robolectric.util.ReflectionHelpers.callInstanceMethod(root, "handleAppVisibility",
             org.robolectric.util.ReflectionHelpers.ClassParameter.from(boolean.class, true));
-        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
+        advanceFrames(32);
+    }
+    static void advanceFrames(int millis) {
+        // A paused Choreographer produces one vsync per clock advance. Step through frames
+        // so animator start time and completion match a continuously rendering device.
+        while (millis > 0) {
+            int step = Math.min(16, millis);
+            shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(step));
+            millis -= step;
+        }
     }
     static void query(MainActivity activity, String query) { ((EditText) activity.findViewById(R.id.station_search)).setText(query); }
     static void layout(MainActivity activity, int width, int height) {

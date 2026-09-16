@@ -59,7 +59,7 @@ public class MainActivity extends Activity {
     private Station selected;
     private PlaybackPresentation playback = PlaybackPresentation.from("Stopped");
     private int filterIndex;
-    private boolean favouritesTab, queueFavourites, playerOpen, stacked, backRegistered;
+    private boolean favouritesTab, queueFavourites, playerOpen, stacked, backRegistered, resumed;
     private String query = "";
     private FrameLayout browser;
     private ScrollView scroller, focus;
@@ -71,6 +71,7 @@ public class MainActivity extends Activity {
     private ImageView miniLogo, playerLogo;
     private ImageButton miniToggle, playerToggle, previous, next;
     private LoadingRingView miniLoading, playerLoading;
+    private PlayerTransition playerTransition;
     private View openPlayer;
     private android.window.OnBackInvokedCallback backCallback;
 
@@ -143,6 +144,14 @@ public class MainActivity extends Activity {
         buildMiniPlayer();
         buildFocusPlayer();
         root.addView(focus, new FrameLayout.LayoutParams(-1, -1));
+        View transitionShield = new View(this);
+        transitionShield.setId(R.id.player_transition_shield);
+        transitionShield.setClickable(true);
+        transitionShield.setFocusable(false);
+        transitionShield.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        transitionShield.setVisibility(View.GONE);
+        root.addView(transitionShield, new FrameLayout.LayoutParams(-1, -1));
+        playerTransition = new PlayerTransition(browser, focus, transitionShield);
         setContentView(root);
         WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), root);
         controller.setAppearanceLightStatusBars(true);
@@ -423,6 +432,7 @@ public class MainActivity extends Activity {
     private void buildFocusPlayer() {
         focus = new ScrollView(this);
         focus.setId(R.id.focus_player);
+        ViewCompat.setAccessibilityPaneTitle(focus, getString(R.string.player));
         focus.setBackgroundColor(BACKGROUND);
         focus.setFillViewport(true);
         focus.setPadding(ui.dp(16), ui.dp(12), ui.dp(16), ui.dp(24));
@@ -656,9 +666,9 @@ public class MainActivity extends Activity {
 
     private void setPlayerOpen(boolean open) {
         playerOpen = open && selected != null;
-        focus.setVisibility(playerOpen ? View.VISIBLE : View.GONE);
-        browser.setVisibility(playerOpen ? View.GONE : View.VISIBLE);
         if (playerOpen) hideKeyboard();
+        playerTransition.show(playerOpen);
+        updateLoadingMotion();
         if (Build.VERSION.SDK_INT >= 33) {
             if (backCallback == null) backCallback = () -> setPlayerOpen(false);
             if (playerOpen && !backRegistered) {
@@ -733,14 +743,22 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        miniLoading.setMotionAllowed(true);
-        playerLoading.setMotionAllowed(true);
+        resumed = true;
+        playerTransition.onResume();
+        updateLoadingMotion();
     }
 
     @Override protected void onPause() {
-        miniLoading.setMotionAllowed(false);
-        playerLoading.setMotionAllowed(false);
+        resumed = false;
+        updateLoadingMotion();
+        playerTransition.onPause();
         super.onPause();
+    }
+
+    private void updateLoadingMotion() {
+        // Both surfaces are briefly visible during a transition; animate only the destination's ring.
+        miniLoading.setMotionAllowed(resumed && !playerOpen);
+        playerLoading.setMotionAllowed(resumed && playerOpen);
     }
 
     @Override protected void onStop() {
@@ -749,6 +767,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        playerTransition.onPause();
         if (Build.VERSION.SDK_INT >= 33 && backRegistered)
             getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);
         super.onDestroy();
