@@ -13,6 +13,8 @@
     <item name="mini_player" type="id" />
     <item name="open_player" type="id" />
     <item name="mini_toggle" type="id" />
+    <item name="mini_loading" type="id" />
+    <item name="player_loading" type="id" />
     <item name="focus_player" type="id" />
     <item name="browse_stations" type="id" />
     <item name="player_favourite" type="id" />

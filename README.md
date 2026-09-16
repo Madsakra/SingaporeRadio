@@ -76,15 +76,21 @@ create signing keys automatically.
 
 ## Project details
 
-- Current version: **1.4** (version code 5)
+- Current version: **1.4.1** (version code 6)
 - Android 7.0 (API 24) or newer; targets Android 16 (API 36)
 - Package: `com.oai.singaporeradio`
 - Native Java Android UI
 - AndroidX Media3 ExoPlayer 1.8.0 and AndroidX Core 1.15.0
 - `MainActivity.java`: station browser, favourites, search, language picker and Focus Player
 - `RadioUi.java`, `StationPresentation.java`, `PlaybackPresentation.java`: frontend styling and presentation of existing catalog/service data
+- `LoadingRingView.java`: quiet loading animation with reduced-motion and visibility handling
 - `RadioService.java`: streaming, background playback, audio focus, and connection handling
 - `StationData.java`: immutable station catalog, language filters and broadcaster stream endpoints
+
+Version 1.4.1 adds a quiet loading ring around the Focus Player artwork and inside
+the bottom Stop shortcut while connecting or buffering. Stop remains usable;
+the rings disappear when playback starts. Android's disabled-animation setting
+shows a stationary ring, and hidden players do not keep animating.
 
 Version 1.4 implements the approved frontend redesign. The playback service,
 station catalog, stream endpoints, manifest and dependency versions are unchanged.

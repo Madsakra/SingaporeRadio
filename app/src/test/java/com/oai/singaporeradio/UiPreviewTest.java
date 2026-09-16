@@ -46,6 +46,28 @@ public class UiPreviewTest {
         }
     }
 
+    @Test public void renderLoadingFeedback() throws Exception {
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            showWindow(activity);
+            list(activity).findViewWithTag("play:YES 933").performClick();
+            capture(activity, "11-connecting-player", 411, 891);
+            for (int i = 0; i < 22; i++) {
+                capture(activity, String.format(java.util.Locale.ROOT, "motion-player-%02d", i), 411, 891);
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+                    .idleFor(java.time.Duration.ofMillis(100));
+            }
+            activity.findViewById(R.id.browse_stations).performClick();
+            status(activity, "Buffering YES 933…");
+            capture(activity, "12-buffering-bar", 411, 891);
+            for (int i = 0; i < 22; i++) {
+                capture(activity, String.format(java.util.Locale.ROOT, "motion-bar-%02d", i), 411, 891);
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+                    .idleFor(java.time.Duration.ofMillis(100));
+            }
+        }
+    }
+
     @Test @Config(qualifiers = "w360dp-h640dp-mdpi")
     public void renderSmallScreenAndLargeText() throws Exception {
         RuntimeEnvironment.setFontScale(1.6f);

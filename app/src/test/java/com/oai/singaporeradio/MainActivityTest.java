@@ -205,10 +205,22 @@ public class MainActivityTest {
 
     static void status(MainActivity activity, String status) {
         activity.sendBroadcast(new Intent(RadioService.BROADCAST_STATUS).setPackage(activity.getPackageName()).putExtra("status", status));
-        shadowOf(Looper.getMainLooper()).idle();
+        // Allow pending frame barriers to clear before checking the status receiver's result.
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
     }
 
     static LinearLayout list(MainActivity activity) { return activity.findViewById(R.id.station_list); }
+    static void showWindow(MainActivity activity) {
+        // Advance animation frames explicitly; automatic vsync never idles for a repeating ring.
+        org.robolectric.shadows.ShadowChoreographer.setPaused(true);
+        org.robolectric.shadows.ShadowChoreographer.setFrameDelay(java.time.Duration.ofMillis(16));
+        // Offscreen Robolectric windows need the visibility signal normally sent by WindowManager.
+        Object root = org.robolectric.util.ReflectionHelpers.callInstanceMethod(
+            activity.getWindow().getDecorView(), "getViewRootImpl");
+        org.robolectric.util.ReflectionHelpers.callInstanceMethod(root, "handleAppVisibility",
+            org.robolectric.util.ReflectionHelpers.ClassParameter.from(boolean.class, true));
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
+    }
     static void query(MainActivity activity, String query) { ((EditText) activity.findViewById(R.id.station_search)).setText(query); }
     static void layout(MainActivity activity, int width, int height) {
         View root = ((ViewGroup) activity.findViewById(android.R.id.content)).getChildAt(0);

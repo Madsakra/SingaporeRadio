@@ -70,6 +70,7 @@ public class MainActivity extends Activity {
     private EditText search;
     private ImageView miniLogo, playerLogo;
     private ImageButton miniToggle, playerToggle, previous, next;
+    private LoadingRingView miniLoading, playerLoading;
     private View openPlayer;
     private android.window.OnBackInvokedCallback backCallback;
 
@@ -404,7 +405,12 @@ public class MainActivity extends Activity {
         miniToggle = ui.iconButton(R.drawable.ic_ui_play, Color.WHITE, GREEN, 40, 56, "");
         miniToggle.setId(R.id.mini_toggle);
         miniToggle.setOnClickListener(v -> togglePlayback());
-        miniBar.addView(miniToggle, lp(ui.dp(56), ui.dp(56), 0, 0));
+        FrameLayout shortcut = new FrameLayout(this);
+        shortcut.addView(miniToggle, new FrameLayout.LayoutParams(-1, -1));
+        miniLoading = new LoadingRingView(this, Color.WHITE, 0x47FFFFFF, 2, 5);
+        miniLoading.setId(R.id.mini_loading);
+        shortcut.addView(miniLoading, new FrameLayout.LayoutParams(-1, -1));
+        miniBar.addView(shortcut, lp(ui.dp(56), ui.dp(56), 0, 0));
         miniBar.addOnLayoutChangeListener((view, l, t, r, b, ol, ot, or, ob) -> updateBrowserPadding());
     }
 
@@ -427,7 +433,14 @@ public class MainActivity extends Activity {
         content.addView(ui.text(getString(R.string.player), 18, MUTED, false), lp(-1, -2, 0, 28));
         playerLogo = ui.logo(selected, 36);
         int logoSize = Math.min(228, getResources().getConfiguration().screenWidthDp - 80);
-        content.addView(playerLogo, lp(ui.dp(logoSize), ui.dp(logoSize), 0, 24));
+        FrameLayout artwork = new FrameLayout(this);
+        // Keep the same outer footprint; leave room around the artwork for the quiet ring.
+        int artSize = ui.dp(Math.round(logoSize * 0.7f));
+        artwork.addView(playerLogo, new FrameLayout.LayoutParams(artSize, artSize, Gravity.CENTER));
+        playerLoading = new LoadingRingView(this, GREEN, 0xFFE4EEE6, 3, 10);
+        playerLoading.setId(R.id.player_loading);
+        artwork.addView(playerLoading, new FrameLayout.LayoutParams(-1, -1));
+        content.addView(artwork, lp(ui.dp(logoSize), ui.dp(logoSize), 0, 24));
         playerName = centred("", 34, TEXT, true);
         content.addView(playerName, lp(-1, -2, 0, 10));
         playerSubtitle = centred("", 20, MUTED, false);
@@ -503,6 +516,9 @@ public class MainActivity extends Activity {
         }
         miniBar.setVisibility(selected == null ? View.GONE : View.VISIBLE);
         updateBrowserPadding();
+        boolean loading = selected != null && playback.active && !playback.live;
+        miniLoading.setLoading(loading);
+        playerLoading.setLoading(loading);
         if (selected == null) return;
         ui.setLogo(miniLogo, selected, 6);
         miniName.setText(selected.name);
@@ -713,6 +729,18 @@ public class MainActivity extends Activity {
         state.putInt("browser_scroll", scroller.getScrollY());
         state.putInt("player_scroll", focus.getScrollY());
         super.onSaveInstanceState(state);
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        miniLoading.setMotionAllowed(true);
+        playerLoading.setMotionAllowed(true);
+    }
+
+    @Override protected void onPause() {
+        miniLoading.setMotionAllowed(false);
+        playerLoading.setMotionAllowed(false);
+        super.onPause();
     }
 
     @Override protected void onStop() {
