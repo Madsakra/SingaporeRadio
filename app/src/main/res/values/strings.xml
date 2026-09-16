@@ -1,27 +1,64 @@
 <resources>
-    <string name="radio_title">收音机\u0020\u0020Radio</string>
-    <string name="choose_station">选择电台 · Choose a station</string>
-    <string name="play_button">▶ PLAY\n播放</string>
-    <string name="stop_button">■\u0020\u0020STOP\u0020\u0020停止</string>
+    <string name="live_status" translatable="false">●  %1$s</string>
+    <string name="unavailable">Unable to play · Open controls</string>
+    <string name="radio_title">Singapore Radio</string>
+    <string name="app_language">App language</string>
+    <string name="filter_language">Station language</string>
+    <string name="all_languages">All languages</string>
+    <string name="search_hint">Search name or frequency</string>
+    <string name="clear_search">Clear search</string>
+    <string name="all_stations">All stations</string>
+    <string name="favourites">Favourites</string>
+    <string name="play_button">Play</string>
+    <string name="stop_button">Stop</string>
     <string name="play_accessibility">Play %1$s</string>
-    <string name="stop_accessibility">Stop radio · 停止播放</string>
-    <string name="internet_required">需要网络 · Internet required</string>
-    <string name="stopped">已停止 · Stopped</string>
-    <string name="playing">正在播放 · Playing\n%1$s</string>
-    <string name="connecting">正在连接 · Connecting\n%1$s</string>
-    <string name="buffering">正在缓冲 · Buffering\n%1$s</string>
-    <string name="filter_language">语言 · Language</string>
+    <string name="stop_accessibility">Stop %1$s</string>
+    <string name="save_station">Save %1$s to favourites</string>
+    <string name="remove_station">Remove %1$s from favourites</string>
+    <string name="saved">Saved</string>
+    <string name="save">Save</string>
+    <string name="open_player">Open radio controls</string>
+    <string name="open_player_accessibility">Open radio controls for %1$s</string>
+    <string name="browse_stations">Browse stations</string>
+    <string name="player">Player</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+    <string name="previous_station">Previous station</string>
+    <string name="next_station">Next station</string>
+    <string name="queue_position">%1$s · %2$d of %3$d</string>
+    <string name="live">LIVE</string>
+    <string name="playing">Playing</string>
+    <string name="connecting">Connecting…</string>
+    <string name="buffering">Buffering…</string>
+    <string name="stopped">Stopped</string>
+    <string name="paused">Paused</string>
+    <string name="no_internet">No internet connection. Turn on Wi-Fi or mobile data, then try again.</string>
+    <string name="timeout">Connection timed out. Check your connection and try again.</string>
+    <string name="stream_error">This station is currently unavailable. Try again or choose another station.</string>
+    <string name="stream_ended">The broadcast stopped. Tap Play to reconnect.</string>
+    <string name="no_favourites">Your favourites will appear here</string>
+    <string name="favourites_hint">Tap a heart beside a station to save it.</string>
+    <string name="no_results">No stations found</string>
+    <string name="no_results_hint">Try another name, frequency or station language.</string>
+    <string name="show_all">Show all stations</string>
+    <string name="language_mandarin">Mandarin</string>
+    <string name="language_english">English</string>
+    <string name="language_malay">Malay</string>
+    <string name="language_tamil">Tamil</string>
+    <string name="language_cantonese">Cantonese</string>
+    <string name="language_korean">Korean</string>
+    <string name="online">Online</string>
+    <string name="singapore_only">Singapore only</string>
+    <string name="classical">Classical</string>
+    <string name="world_feed">World feed</string>
+    <string name="indie">Indie</string>
+    <string name="dance">Dance</string>
     <plurals name="station_count">
-        <item quantity="one">%1$d 个电台 · %1$d station</item>
-        <item quantity="other">%1$d 个电台 · %1$d stations</item>
+        <item quantity="one">%1$d station</item>
+        <item quantity="other">%1$d stations</item>
     </plurals>
-    <string-array name="station_filters">
-        <item>全部 · All stations</item>
-        <item>中文 · Mandarin</item>
-        <item>English</item>
-        <item>Melayu · Malay</item>
-        <item>தமிழ் · Tamil</item>
-        <item>粤语 · Cantonese</item>
-        <item>한국어 · Korean</item>
-    </string-array>
+    <plurals name="saved_count">
+        <item quantity="one">%1$d saved station</item>
+        <item quantity="other">%1$d saved stations</item>
+    </plurals>
 </resources>

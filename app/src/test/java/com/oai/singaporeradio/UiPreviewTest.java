@@ -4,8 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Spinner;
-import android.widget.ScrollView;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -17,54 +16,96 @@ import org.robolectric.annotation.GraphicsMode;
 import java.io.File;
 import java.io.FileOutputStream;
 import static org.junit.Assert.*;
-import static org.robolectric.Shadows.shadowOf;
+import static com.oai.singaporeradio.MainActivityTest.*;
 
-/** Renders Android views for manual visual review in build/reports/ui/. */
+/** Actual native Android view renders, not design mockups. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 36, qualifiers = "w411dp-h891dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class UiPreviewTest {
-    @Test public void renderCatalogAndFilters() throws Exception {
+    @Before public void resetPreferences() {
+        RuntimeEnvironment.getApplication().getSharedPreferences(MainActivity.PREFERENCES, 0).edit().clear().commit();
+    }
+
+    @Test public void renderApprovedFlow() throws Exception {
         try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
-            Spinner filter = activity.findViewById(R.id.station_filter);
-            capture(activity, "all-stations", 411, 891);
-            ScrollView scroller = activity.findViewById(R.id.station_scroller);
-            int lastScroll = scroller.getChildAt(0).getHeight() - scroller.getHeight();
-            int step = scroller.getHeight() - 100;
-            for (int offset = step, page = 2; offset < lastScroll + step; offset += step, page++) {
-                scroller.scrollTo(0, Math.min(offset, lastScroll));
-                capture(activity, "all-stations-" + page, 411, 891);
-            }
-            filter.setSelection(2);
-            shadowOf(android.os.Looper.getMainLooper()).idle();
-            capture(activity, "english", 411, 891);
-            filter.setSelection(3);
-            shadowOf(android.os.Looper.getMainLooper()).idle();
-            capture(activity, "malay", 411, 891);
-            filter.setSelection(6);
-            shadowOf(android.os.Looper.getMainLooper()).idle();
-            capture(activity, "korean", 411, 891);
+            capture(activity, "01-all-stations", 411, 891);
+            for (int i = 0; i < 3; i++) list(activity).findViewWithTag("favourite:" + StationData.ALL.get(i).name).performClick();
+            activity.findViewById(R.id.tab_favourites).performClick();
+            capture(activity, "02-favourites", 411, 891);
+            list(activity).findViewWithTag("play:LOVE 972").performClick();
+            status(activity, "Playing LOVE 972");
+            capture(activity, "03-focus-player", 411, 891);
+            activity.findViewById(R.id.browse_stations).performClick();
+            capture(activity, "04-playing-bar", 411, 891);
+            activity.findViewById(R.id.mini_toggle).performClick();
+            capture(activity, "05-stopped-bar", 411, 891);
+            query(activity, "999");
+            capture(activity, "06-no-results", 411, 891);
         }
     }
 
     @Test @Config(qualifiers = "w360dp-h640dp-mdpi")
-    public void renderLargeTextOnSmallPhone() throws Exception {
+    public void renderSmallScreenAndLargeText() throws Exception {
         RuntimeEnvironment.setFontScale(1.6f);
         try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
-            capture(controller.get(), "large-text", 360, 640);
+            MainActivity activity = controller.get();
+            list(activity).findViewWithTag("play:LOVE 972").performClick();
+            capture(activity, "07-large-text-player", 360, 640);
+            activity.findViewById(R.id.browse_stations).performClick();
+            capture(activity, "08-large-text-browser", 360, 640);
+        }
+    }
+
+    @Test @Config(qualifiers = "w640dp-h360dp-land-mdpi")
+    public void renderLandscapeError() throws Exception {
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            list(activity).findViewWithTag("play:LOVE 972").performClick();
+            activity.findViewById(R.id.browse_stations).performClick();
+            status(activity, "No internet connection. Turn on Wi-Fi or mobile data, then tap PLAY.");
+            capture(activity, "09-landscape-error", 640, 360);
+        }
+    }
+
+    @Test public void renderLanguages() throws Exception {
+        for (String tag : new String[]{"zh", "ms", "ta"}) {
+            RuntimeEnvironment.getApplication().getSharedPreferences(MainActivity.PREFERENCES, 0).edit().putString("language", tag).commit();
+            try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+                MainActivity activity = controller.get();
+                list(activity).findViewWithTag("play:LOVE 972").performClick();
+                activity.findViewById(R.id.browse_stations).performClick();
+                capture(activity, "10-language-" + tag, 411, 891);
+            }
         }
     }
 
     private static void capture(MainActivity activity, String name, int width, int height) throws Exception {
+        layout(activity, width, height);
         View root = ((ViewGroup) activity.findViewById(android.R.id.content)).getChildAt(0);
-        root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
-        root.layout(0, 0, width, height);
         Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         root.draw(new Canvas(bitmap));
-        assertTrue("Rendered view contains foreground content", bitmap.getPixel(width / 2, height - 80) != bitmap.getPixel(0, 0));
-        File directory = new File("build/reports/ui");
+        if (name.equals("04-playing-bar")) {
+            View toggle = activity.findViewById(R.id.mini_toggle);
+            android.graphics.Rect bounds = new android.graphics.Rect(0, 0, toggle.getWidth(), toggle.getHeight());
+            ((ViewGroup) root).offsetDescendantRectToMyCoords(toggle, bounds);
+            int minX = bounds.right, maxX = bounds.left, minY = bounds.bottom, maxY = bounds.top;
+            for (int y = bounds.top; y < bounds.bottom; y++) {
+                for (int x = bounds.left; x < bounds.right; x++) {
+                    if (bitmap.getPixel(x, y) == android.graphics.Color.WHITE) {
+                        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+            assertTrue("Stop symbol is visible", maxX > minX && maxY > minY);
+            assertEquals("Stop symbol stays horizontally centred after opening the full player",
+                bounds.exactCenterX(), (minX + maxX + 1) / 2f, 2f);
+            assertEquals("Stop symbol stays vertically centred after opening the full player",
+                bounds.exactCenterY(), (minY + maxY + 1) / 2f, 2f);
+        }
+        File directory = new File("build/reports/ui-redesign");
         assertTrue(directory.isDirectory() || directory.mkdirs());
         try (FileOutputStream output = new FileOutputStream(new File(directory, name + ".png"))) {
             assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output));

@@ -1,21 +1,27 @@
 # Singapore Radio
 
-A simple Android radio player built for older listeners and everyday family use. It offers **26 Singapore radio stations and digital channels**, with large controls and English/Chinese labels. **YES 933**, **LOVE 972**, and **CAPITAL 958** remain first for existing listeners. See the [station catalog and source checks](docs/STATIONS.md) for coverage and availability.
+A simple Android radio player built for older listeners and everyday family use. It offers **26 Singapore radio stations and digital channels**, with large controls and a choice of **English, Chinese, Malay or Tamil** for the app interface. **YES 933**, **LOVE 972**, and **CAPITAL 958** remain first for existing listeners. See the [station catalog and source checks](docs/STATIONS.md) for coverage and availability.
 
 The app adds no ads, analytics, subscriptions, or sign-in. **Live radio needs an internet connection**; this is not an offline radio receiver. Advertisements within a station's broadcast may still be heard.
 
-<img src="docs/screenshot.png" alt="Singapore Radio: accessible station list, language filter, large green PLAY buttons and a red STOP button" width="340">
-<img src="docs/station-logos.png" alt="English station filter showing MONEY FM, GOLD 905, ONE FM and Kiss92 with their official logos" width="340">
+<img src="docs/ui-redesign/all-stations.png" alt="Singapore Radio: ivory station browser with search, language filter, favourites and green Play buttons" width="300">
+<img src="docs/ui-redesign/playing-bar.png" alt="Saved stations with a translucent bottom player bar and a red Stop shortcut" width="300">
+<img src="docs/ui-redesign/focus-player.png" alt="Focus Player with station artwork, Live status, favourite, Previous, Stop and Next controls" width="300">
 
 ## Features
 
 - A shared catalog covering Mediacorp, SPH Media, BBC World Service and Kakee.
 - Language filters for Mandarin, English, Malay, Tamil, Cantonese and Korean; bilingual stations appear in both relevant filters.
 - Full station names, FM/online labels and language information. Official station and channel logos for all 26 entries are bundled in the app and appear without extra network requests.
-- Light grey background, large green PLAY buttons, and a large red STOP button.
-- English and Chinese controls, wrapping station names and stacked controls on narrow screens or at large font sizes.
-- A scrolling station list with playback status and STOP kept outside the scroll area.
-- Filter selection survives screen rotation; filtering does not interrupt playback.
+- Warm ivory and forest-green interface, with All stations as the default tab and a separate Favourites tab.
+- Search by station name or frequency, combined with the station-language filter.
+- Separate heart buttons save favourites locally without changing playback.
+- A native-name app-language picker: English, 中文, Bahasa Melayu and தமிழ். App language and station language are independent.
+- Tapping a station's Play button opens the Focus Player. Browse stations returns to the existing list while audio continues.
+- An inset translucent bottom bar opens the player and provides an icon-only green Start / red Stop shortcut. It remains available after stopping.
+- Previous and Next use the station list captured when listening started.
+- Wrapping station names, adaptive layouts and scrolling support smaller screens and larger system text.
+- Filters, search, tab and player state survive screen rotation; favourites and the last selected station persist across launches.
 - Playback with the screen off, audio focus handling, and stopping when headphones disconnect.
 - Clear connection, offline, and playback status messages.
 - Direct broadcaster streams; no project-owned audio server.
@@ -57,10 +63,12 @@ For an Android App Bundle (AAB) and automated checks:
 
 The release bundle is written to `app/build/outputs/bundle/release/app-release.aab`.
 It is **unsigned** until you configure release signing. Automated tests cover the
-catalog, every station's PLAY intent, filtering, recreation, and small-screen
-layouts on Android 7 and Android 16. Native-rendered UI previews are generated in
-`app/build/reports/ui/` for visual review. `docs/screenshot.png` is a preview of
-the Android views, not a physical-device screenshot.
+catalog, every station's PLAY intent, favourites, search, filtering, recreation,
+player shortcuts, station navigation, localization and small-screen layouts on
+Android 7 and Android 16. Native-rendered UI previews are generated in
+`app/build/reports/ui-redesign/` for visual review. The images under
+`docs/ui-redesign/` show the actual Android views rendered by Robolectric,
+not physical-device screenshots.
 
 Google Play preparation and remaining release work are documented in
 [GOOGLE_PLAY.md](docs/GOOGLE_PLAY.md). This repository does not publish an app or
@@ -68,16 +76,21 @@ create signing keys automatically.
 
 ## Project details
 
-- Current version: **1.3** (version code 4)
+- Current version: **1.4** (version code 5)
 - Android 7.0 (API 24) or newer; targets Android 16 (API 36)
 - Package: `com.oai.singaporeradio`
 - Native Java Android UI
 - AndroidX Media3 ExoPlayer 1.8.0 and AndroidX Core 1.15.0
-- `MainActivity.java`: station list, large controls, and playback status
+- `MainActivity.java`: station browser, favourites, search, language picker and Focus Player
+- `RadioUi.java`, `StationPresentation.java`, `PlaybackPresentation.java`: frontend styling and presentation of existing catalog/service data
 - `RadioService.java`: streaming, background playback, audio focus, and connection handling
 - `StationData.java`: immutable station catalog, language filters and broadcaster stream endpoints
 
-Version 1.3 expands the station catalog and adapts the UI to longer lists and
+Version 1.4 implements the approved frontend redesign. The playback service,
+station catalog, stream endpoints, manifest and dependency versions are unchanged.
+See [UI_REDESIGN.md](docs/UI_REDESIGN.md) for behaviour and phone-testing notes.
+
+Version 1.3 expanded the station catalog and adapted the UI to longer lists and
 names while retaining the existing playback service. Live stream checks received
 audio from 22 feeds; four Kakee feeds returned HTTP 403 from the verification
 network. All Kakee streams are labelled Singapore-only, consistent with the

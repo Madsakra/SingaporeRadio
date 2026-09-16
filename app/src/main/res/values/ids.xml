@@ -5,4 +5,18 @@
     <item name="station_scroller" type="id" />
     <item name="playback_status" type="id" />
     <item name="stop_button" type="id" />
+    <item name="app_language" type="id" />
+    <item name="station_search" type="id" />
+    <item name="clear_search" type="id" />
+    <item name="tab_all" type="id" />
+    <item name="tab_favourites" type="id" />
+    <item name="mini_player" type="id" />
+    <item name="open_player" type="id" />
+    <item name="mini_toggle" type="id" />
+    <item name="focus_player" type="id" />
+    <item name="browse_stations" type="id" />
+    <item name="player_favourite" type="id" />
+    <item name="previous_station" type="id" />
+    <item name="next_station" type="id" />
+    <item name="queue_position" type="id" />
 </resources>

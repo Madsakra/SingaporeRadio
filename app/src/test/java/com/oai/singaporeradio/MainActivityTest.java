@@ -1,151 +1,253 @@
 package com.oai.singaporeradio;
 
+import android.app.AlertDialog;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
-import org.junit.Test;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
-import java.util.ArrayList;
-import java.util.List;
+import org.robolectric.shadows.ShadowAlertDialog;
 import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {24, 36}, qualifiers = "w411dp-h891dp")
+@Config(sdk = {24, 36}, qualifiers = "w411dp-h891dp-mdpi")
 public class MainActivityTest {
-    @Before public void grantInstallTimeSignaturePermission() {
-        // Android grants the app's own merged signature permission at installation.
-        // Robolectric API 24 needs that install-time grant supplied explicitly.
+    @Before public void resetPreferencesAndGrantReceiverPermission() {
+        RuntimeEnvironment.getApplication().getSharedPreferences(MainActivity.PREFERENCES, 0).edit().clear().commit();
         shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(
             "com.oai.singaporeradio.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION");
     }
 
-    @Test public void everyStationRendersItsFullNameAndStartsItsOwnStream() {
+    @Test public void allStationsStartTheirExistingStreamsAndOpenTheFocusPlayer() {
         try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
-            LinearLayout list = activity.findViewById(R.id.station_list);
-            assertEquals(StationData.ALL.size(), list.getChildCount());
+            assertEquals(26, list(activity).getChildCount());
+            assertEquals(View.GONE, activity.findViewById(R.id.mini_player).getVisibility());
             assertNull(shadowOf(activity).getNextStartedService());
-            for (int i = 0; i < StationData.ALL.size(); i++) {
-                Station station = StationData.ALL.get(i);
-                ViewGroup row = (ViewGroup) list.getChildAt(i);
-                List<TextView> labels = labels(row);
-                assertTrue(station.name, labels.stream().anyMatch(v -> station.name.contentEquals(v.getText())));
-                assertTrue(station.name, labels.stream().anyMatch(v -> station.subtitle.contentEquals(v.getText())));
-                Button play = (Button) row.getChildAt(row.getChildCount() - 1);
-                assertEquals("Play " + station.name, play.getContentDescription());
-                play.performClick();
-                Intent intent = shadowOf(activity).getNextStartedService();
-                assertNotNull(station.name, intent);
-                assertEquals(RadioService.ACTION_PLAY, intent.getAction());
-                assertEquals(station.url, intent.getStringExtra(RadioService.EXTRA_URL));
-                assertEquals(station.name, intent.getStringExtra(RadioService.EXTRA_NAME));
+            for (Station station : StationData.ALL) {
+                View row = list(activity).findViewWithTag(station.name);
+                assertNotNull(station.name, row);
+                assertTrue(containsText((ViewGroup) row, station.name));
+                assertTrue(containsText((ViewGroup) row, StationPresentation.subtitle(activity, station)));
+                row.findViewWithTag("play:" + station.name).performClick();
+                assertPlayIntent(activity, station);
+                assertEquals(View.VISIBLE, activity.findViewById(R.id.focus_player).getVisibility());
+                activity.findViewById(R.id.browse_stations).performClick();
+                assertEquals(View.GONE, activity.findViewById(R.id.focus_player).getVisibility());
+                assertNull("Browsing does not send playback commands", shadowOf(activity).getNextStartedService());
             }
-            activity.findViewById(R.id.stop_button).performClick();
-            assertEquals(RadioService.ACTION_STOP, shadowOf(activity).getNextStartedService().getAction());
         }
     }
 
-    @Test public void filteringChangesRowsWithoutStartingOrStoppingPlaybackAndSurvivesRecreation() {
+    @Test public void favouritesPersistWithoutChangingPlaybackAndTabsRemainIndependentOfSearch() {
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            list(activity).findViewWithTag("favourite:LOVE 972").performClick();
+            activity.findViewById(R.id.tab_favourites).performClick();
+            assertEquals(1, list(activity).getChildCount());
+            assertEquals("LOVE 972", list(activity).getChildAt(0).getTag());
+            query(activity, "93.3");
+            assertEquals(0, list(activity).getChildCount());
+            activity.findViewById(R.id.tab_all).performClick();
+            assertEquals(1, list(activity).getChildCount());
+            assertEquals("YES 933", list(activity).getChildAt(0).getTag());
+            assertNull(shadowOf(activity).getNextStartedService());
+        }
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            assertEquals(26, list(controller.get()).getChildCount()); // All stations is the launch default.
+            controller.get().findViewById(R.id.tab_favourites).performClick();
+            assertEquals(1, list(controller.get()).getChildCount());
+            list(controller.get()).findViewWithTag("favourite:LOVE 972").performClick();
+            assertEquals(0, list(controller.get()).getChildCount());
+        }
+    }
+
+    @Test public void filterAndQuerySurviveRecreationAndNeverControlPlayback() {
         Bundle state = new Bundle();
         try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
-            Spinner filter = activity.findViewById(R.id.station_filter);
-            assertEquals(Station.Language.values().length + 1, filter.getCount());
-            for (int i = 1; i < filter.getCount(); i++) {
-                filter.setSelection(i);
-                shadowOf(android.os.Looper.getMainLooper()).idle();
-                LinearLayout list = activity.findViewById(R.id.station_list);
-                List<Station> expected = StationData.forLanguage(Station.Language.values()[i - 1]);
-                assertEquals(expected.size(), list.getChildCount());
-                for (int j = 0; j < expected.size(); j++) assertEquals(expected.get(j).name, list.getChildAt(j).getTag());
-            }
-            assertNull(shadowOf(activity).getNextStartedService());
+            activity.findViewById(R.id.station_filter).performClick();
+            AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+            assertEquals(7, dialog.getListView().getCount());
+            dialog.getListView().performItemClick(null, 3, 3); // Malay.
+            assertEquals(2, list(activity).getChildCount());
+            query(activity, "warNa  942");
+            assertEquals(1, list(activity).getChildCount());
+            assertEquals("WARNA 942", list(activity).getChildAt(0).getTag());
             controller.saveInstanceState(state);
+            assertNull(shadowOf(activity).getNextStartedService());
         }
-        try (ActivityController<MainActivity> restored = Robolectric.buildActivity(MainActivity.class).setup(state)) {
-            Spinner filter = restored.get().findViewById(R.id.station_filter);
-            assertEquals(Station.Language.values().length, filter.getSelectedItemPosition());
-            LinearLayout list = restored.get().findViewById(R.id.station_list);
-            assertEquals(1, list.getChildCount());
-            assertEquals("88.3JIA K-Pop", list.getChildAt(0).getTag());
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup(state)) {
+            assertEquals(1, list(controller.get()).getChildCount());
+            assertEquals("WARNA 942", list(controller.get()).getChildAt(0).getTag());
+            assertEquals("warNa  942", ((EditText) controller.get().findViewById(R.id.station_search)).getText().toString());
         }
     }
 
-    @Test @Config(qualifiers = "w360dp-h640dp")
-    public void narrowScreenAndLargeTextKeepControlsVisibleAndRowsScrollable() {
-        Configuration config = new Configuration(RuntimeEnvironment.getApplication().getResources().getConfiguration());
-        config.fontScale = 1.6f;
-        RuntimeEnvironment.getApplication().getResources().updateConfiguration(config, null);
+    @Test public void miniShortcutStopsAndRestartsWithoutOpeningPlayerOrChangingStation() {
         try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
-            View root = ((ViewGroup) activity.findViewById(android.R.id.content)).getChildAt(0);
-            float density = activity.getResources().getDisplayMetrics().density;
-            int width = (int) (360 * density), height = (int) (640 * density);
-            root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
-            root.layout(0, 0, width, height);
-            View stop = activity.findViewById(R.id.stop_button);
-            View scroller = activity.findViewById(R.id.station_scroller);
-            assertTrue("STOP fits on screen", stop.getBottom() <= height);
-            assertTrue("STOP remains tappable", stop.getHeight() >= 48 * density);
-            assertTrue("Station list has visible space", scroller.getHeight() > 80 * density);
-            assertNotSame(scroller, stop.getParent());
-            assertNotSame(scroller, activity.findViewById(R.id.playback_status).getParent());
-            LinearLayout list = activity.findViewById(R.id.station_list);
-            assertTrue(list.getHeight() > scroller.getHeight());
-            for (int i = 0; i < list.getChildCount(); i++) {
-                LinearLayout row = (LinearLayout) list.getChildAt(i);
-                assertEquals(LinearLayout.VERTICAL, row.getOrientation());
-                for (TextView label : labels(row)) {
-                    assertTrue(label.getText().toString(), label.getWidth() > 0);
-                    assertNotNull(label.getLayout());
-                    int last = label.getLayout().getLineCount() - 1;
-                    assertEquals("No ellipsized station labels", 0, label.getLayout().getEllipsisCount(last));
-                    assertTrue("Text fits its view: " + label.getText(),
-                        label.getLayout().getHeight() <= label.getHeight() - label.getCompoundPaddingTop() - label.getCompoundPaddingBottom());
-                }
+            Station station = StationData.ALL.get(1);
+            list(activity).findViewWithTag("play:" + station.name).performClick();
+            assertPlayIntent(activity, station);
+            status(activity, "Playing LOVE 972");
+            activity.findViewById(R.id.browse_stations).performClick();
+            View toggle = activity.findViewById(R.id.mini_toggle);
+            assertEquals("Stop LOVE 972", toggle.getContentDescription());
+            toggle.performClick();
+            assertEquals(RadioService.ACTION_STOP, shadowOf(activity).getNextStartedService().getAction());
+            assertEquals(View.VISIBLE, activity.findViewById(R.id.mini_player).getVisibility());
+            assertEquals("Play LOVE 972", toggle.getContentDescription());
+            assertEquals(View.GONE, activity.findViewById(R.id.focus_player).getVisibility());
+            toggle.performClick();
+            assertPlayIntent(activity, station);
+            assertEquals(View.GONE, activity.findViewById(R.id.focus_player).getVisibility());
+            activity.findViewById(R.id.open_player).performClick();
+            assertEquals(View.VISIBLE, activity.findViewById(R.id.focus_player).getVisibility());
+            assertNull(shadowOf(activity).getNextStartedService());
+            activity.onBackPressed();
+            assertEquals(View.GONE, activity.findViewById(R.id.focus_player).getVisibility());
+            assertNull(shadowOf(activity).getNextStartedService());
+        }
+    }
+
+    @Test public void nextAndPreviousUseCapturedListEvenWhenBrowsingFiltersChange() {
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            for (int i = 0; i < 3; i++) list(activity).findViewWithTag("favourite:" + StationData.ALL.get(i).name).performClick();
+            activity.findViewById(R.id.tab_favourites).performClick();
+            list(activity).findViewWithTag("play:LOVE 972").performClick();
+            assertPlayIntent(activity, StationData.ALL.get(1));
+            activity.findViewById(R.id.browse_stations).performClick();
+            activity.findViewById(R.id.tab_all).performClick();
+            activity.setStationFilter(3);
+            activity.findViewById(R.id.open_player).performClick();
+            activity.findViewById(R.id.next_station).performClick();
+            assertPlayIntent(activity, StationData.ALL.get(2));
+            assertEquals("Favourites · 3 of 3", ((TextView) activity.findViewById(R.id.queue_position)).getText().toString());
+            activity.findViewById(R.id.next_station).performClick();
+            assertPlayIntent(activity, StationData.ALL.get(0));
+            activity.findViewById(R.id.previous_station).performClick();
+            assertPlayIntent(activity, StationData.ALL.get(2));
+        }
+    }
+
+    @Test public void connectingBufferingPausedAndFailureExposeTheRightAction() {
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            list(activity).findViewWithTag("play:POWER 98 EDM Club Hits").performClick();
+            assertPlayIntent(activity, StationPresentation.named("POWER 98 EDM Club Hits"));
+            for (String message : new String[]{"Connecting to POWER 98 EDM Club Hits…", "Buffering POWER 98 EDM Club Hits…", "Playing POWER 98 EDM Club Hits"}) {
+                status(activity, message);
+                assertEquals("Stop POWER 98 EDM Club Hits", activity.findViewById(R.id.mini_toggle).getContentDescription());
+            }
+            for (String message : new String[]{"Paused POWER 98 EDM Club Hits. Tap PLAY to resume.",
+                    "No internet connection. Turn on Wi-Fi or mobile data, then tap PLAY.",
+                    "Unable to play POWER 98 EDM Club Hits. The stream may be unavailable or region-restricted. Try another station."}) {
+                status(activity, message);
+                assertEquals("Play POWER 98 EDM Club Hits", activity.findViewById(R.id.mini_toggle).getContentDescription());
+            }
+            assertTrue(((TextView) activity.findViewById(R.id.playback_status)).getText().toString().contains("unavailable"));
+        }
+    }
+
+    @Test public void languagePickerUsesNativeNamesAndEachLocaleLocalizesScreenLabels() {
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            controller.get().findViewById(R.id.app_language).performClick();
+            AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+            String[] names = {"English", "中文", "Bahasa Melayu", "தமிழ்"};
+            for (int i = 0; i < names.length; i++) assertEquals(names[i], dialog.getListView().getAdapter().getItem(i));
+            dialog.dismiss();
+        }
+        String[] tags = {"zh", "ms", "ta"};
+        String[] labels = {"所有电台", "Semua stesen", "அனைத்து நிலையங்களும்"};
+        for (int i = 0; i < tags.length; i++) {
+            RuntimeEnvironment.getApplication().getSharedPreferences(MainActivity.PREFERENCES, 0).edit().putString("language", tags[i]).commit();
+            try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+                assertEquals(labels[i], ((TextView) controller.get().findViewById(R.id.tab_all)).getText().toString());
+                assertTrue(containsText((ViewGroup) list(controller.get()).getChildAt(0), "YES 933"));
             }
         }
     }
 
-    @Test @Config(qualifiers = "w640dp-h360dp-land")
-    public void landscapeLeavesRoomToChooseAnotherStationAfterAnError() {
+    @Test @Config(qualifiers = "w360dp-h640dp-mdpi")
+    public void largeTextKeepsStationNamesAndBothMiniBarActionsReachable() {
+        RuntimeEnvironment.setFontScale(1.6f);
         try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
-            activity.sendBroadcast(new Intent(RadioService.BROADCAST_STATUS).setPackage(activity.getPackageName())
-                .putExtra("status", "Unable to play POWER 98 EDM Club Hits. The stream may be unavailable or region-restricted. Try another station."));
-            shadowOf(android.os.Looper.getMainLooper()).idle();
-            View root = ((ViewGroup) activity.findViewById(android.R.id.content)).getChildAt(0);
-            float density = activity.getResources().getDisplayMetrics().density;
-            int width = (int) (640 * density), height = (int) (360 * density);
-            root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
-            root.layout(0, 0, width, height);
-            assertTrue(activity.findViewById(R.id.station_scroller).getHeight() >= 80 * density);
-            assertTrue(activity.findViewById(R.id.stop_button).getBottom() <= height);
+            list(activity).findViewWithTag("play:LOVE 972").performClick();
+            activity.findViewById(R.id.browse_stations).performClick();
+            layout(activity, 360, 640);
+            View bar = activity.findViewById(R.id.mini_player);
+            assertTrue(bar.getBottom() <= 640);
+            assertTrue(activity.findViewById(R.id.mini_toggle).getHeight() >= 48);
+            assertTrue(activity.findViewById(R.id.open_player).getWidth() > 100);
+            assertTrue(activity.findViewById(R.id.station_scroller).getHeight() - bar.getHeight() >= 200);
+            for (int i = 0; i < list(activity).getChildCount(); i++) {
+                LinearLayout row = (LinearLayout) list(activity).getChildAt(i);
+                assertEquals(LinearLayout.VERTICAL, row.getOrientation());
+                assertTextFits(row);
+            }
         }
     }
 
-    private static List<TextView> labels(ViewGroup group) {
-        List<TextView> result = new ArrayList<>();
+    static void status(MainActivity activity, String status) {
+        activity.sendBroadcast(new Intent(RadioService.BROADCAST_STATUS).setPackage(activity.getPackageName()).putExtra("status", status));
+        shadowOf(Looper.getMainLooper()).idle();
+    }
+
+    static LinearLayout list(MainActivity activity) { return activity.findViewById(R.id.station_list); }
+    static void query(MainActivity activity, String query) { ((EditText) activity.findViewById(R.id.station_search)).setText(query); }
+    static void layout(MainActivity activity, int width, int height) {
+        View root = ((ViewGroup) activity.findViewById(android.R.id.content)).getChildAt(0);
+        // A second layout incorporates measured bottom-bar padding.
+        for (int i = 0; i < 2; i++) {
+            root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+            root.layout(0, 0, width, height);
+            shadowOf(Looper.getMainLooper()).idle();
+        }
+    }
+
+    private static void assertPlayIntent(MainActivity activity, Station station) {
+        Intent intent = shadowOf(activity).getNextStartedService();
+        assertNotNull(station.name, intent);
+        assertEquals(RadioService.ACTION_PLAY, intent.getAction());
+        assertEquals(station.name, intent.getStringExtra(RadioService.EXTRA_NAME));
+        assertEquals(station.url, intent.getStringExtra(RadioService.EXTRA_URL));
+    }
+
+    private static boolean containsText(ViewGroup group, String text) {
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
-            if (child instanceof TextView) result.add((TextView) child);
-            if (child instanceof ViewGroup) result.addAll(labels((ViewGroup) child));
+            if (child instanceof TextView && text.contentEquals(((TextView) child).getText())) return true;
+            if (child instanceof ViewGroup && containsText((ViewGroup) child, text)) return true;
         }
-        return result;
+        return false;
+    }
+
+    private static void assertTextFits(ViewGroup group) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView text = (TextView) child;
+                assertNotNull(text.getLayout());
+                assertTrue("Text fits: " + text.getText(),
+                    text.getLayout().getHeight() <= text.getHeight() - text.getCompoundPaddingTop() - text.getCompoundPaddingBottom());
+            }
+            if (child instanceof ViewGroup) assertTextFits((ViewGroup) child);
+        }
     }
 }
