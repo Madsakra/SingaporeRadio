@@ -362,15 +362,15 @@ public class MainActivity extends Activity {
         actions.addView(heart, lp(ui.dp(48), ui.dp(52), 0, 0));
         Button play = ui.button("", Color.WHITE, GREEN);
         play.setTag("play:" + station.name);
-        // Keep the generous touch target; the standalone icon is centred in both row layouts.
-        play.setMinWidth(ui.dp(92));
-        play.setMinimumWidth(ui.dp(92));
+        // Match the bottom shortcut's 56dp circular touch target.
+        play.setMinWidth(ui.dp(56));
+        play.setMinimumWidth(ui.dp(56));
         play.setForegroundGravity(Gravity.CENTER);
         play.setOnClickListener(v -> {
             if (selected == station && playback.active) setPlayerOpen(true);
             else { captureQueue(); playStation(station, true); }
         });
-        LinearLayout.LayoutParams playParams = lp(stacked ? -2 : ui.dp(92), -2, 0, 0);
+        LinearLayout.LayoutParams playParams = lp(ui.dp(56), ui.dp(56), 0, 0);
         playParams.leftMargin = ui.dp(4);
         actions.addView(play, playParams);
         row.addView(actions, lp(stacked ? -1 : -2, -2, 0, 0));
@@ -524,7 +524,18 @@ public class MainActivity extends Activity {
             row.play.setTextSize(active ? 15 : 17);
             row.play.setTextColor(active ? GREEN : Color.WHITE);
             row.play.setForeground(active ? null : ui.icon(R.drawable.ic_ui_play, Color.WHITE, 24));
-            ui.clickable(row.play, active ? Color.TRANSPARENT : GREEN, 8, null);
+            row.play.setPadding(active ? ui.dp(12) : 0, active ? ui.dp(10) : 0,
+                active ? ui.dp(12) : 0, active ? ui.dp(10) : 0);
+            // Keep status text readable while idle Play controls remain true circles.
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) row.play.getLayoutParams();
+            int width = active ? (stacked ? -2 : ui.dp(92)) : ui.dp(56);
+            int height = active ? -2 : ui.dp(56);
+            if (params.width != width || params.height != height) {
+                params.width = width;
+                params.height = height;
+                row.play.setLayoutParams(params);
+            }
+            ui.clickable(row.play, active ? Color.TRANSPARENT : GREEN, active ? 8 : 100, null);
             row.play.setContentDescription(getString(active ? R.string.open_player_accessibility : R.string.play_accessibility, entry.getKey()));
         }
         miniBar.setVisibility(selected == null ? View.GONE : View.VISIBLE);

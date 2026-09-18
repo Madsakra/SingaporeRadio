@@ -1,4 +1,4 @@
-# Frontend redesign — version 1.4.3
+# Frontend redesign — version 1.4.4
 
 This version implements the approved ivory/green mobile design, including the final smaller chevron and icon-only playback shortcut in the bottom bar.
 
@@ -7,7 +7,7 @@ This version implements the approved ivory/green mobile design, including the fi
 - **All stations** is the default launch tab. Station-language filtering and name/frequency search work together on both tabs.
 - **Favourites** contains stations saved with the separate heart control. Saving or removing a station never sends a playback command.
 - **Play in a station row** starts that station and opens the full Focus Player. A connecting or buffering station is not marked LIVE.
-- **Station-row buttons (1.4.3):** idle stations use a centred white play triangle on a green button, without visible Play text. The generous touch target and localized screen-reader labels remain. The active station still displays Playing, Connecting or Buffering so its state is clear.
+- **Station-row buttons (1.4.4):** idle stations use a centred white play triangle on a circular green button with a 56dp touch target, without visible Play text. Localized screen-reader labels remain. The active station still displays Playing, Connecting or Buffering with enough space for the text.
 - **Browse stations / Android Back from the player** returns to the same browser, without stopping audio.
 - **Player transition (1.4.2):** opening rises 32dp and fades in over 280 ms; closing reverses it over 224 ms. The browser and bottom bar stay still underneath, retaining their scroll position. The easing matches the approved gentle-rise design, with no bounce or zoom. Both station-row Play and the bottom bar use this navigation transition.
 - **Bottom bar:** the logo, name, text and small chevron open the Focus Player. The separate circular control stops playback (red square) or starts the shown station (green triangle), without opening the player. The bar remains after stopping; it is hidden until a station has been selected.
@@ -75,4 +75,4 @@ Suggested checks:
 8. Tap the bottom bar to open the player, then Browse stations or Android Back to return. Confirm the gentle motion does not interrupt sound or move the station list.
 9. Press Android Back midway through opening, rotate or background the app during a transition, and confirm the destination remains fully visible and usable.
 
-The app is version 1.4.3 / code 8, package `com.oai.singaporeradio`, minimum Android 7.0.
+The app is version 1.4.4 / code 9, package `com.oai.singaporeradio`, minimum Android 7.0.
