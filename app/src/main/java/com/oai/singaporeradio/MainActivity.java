@@ -360,9 +360,12 @@ public class MainActivity extends Activity {
         setCheckedAccessibility(heart, saved);
         heart.setOnClickListener(v -> toggleFavourite(station));
         actions.addView(heart, lp(ui.dp(48), ui.dp(52), 0, 0));
-        Button play = ui.button(getString(R.string.play_button), Color.WHITE, GREEN);
+        Button play = ui.button("", Color.WHITE, GREEN);
         play.setTag("play:" + station.name);
-        play.setCompoundDrawablePadding(ui.dp(4));
+        // Keep the generous touch target; the standalone icon is centred in both row layouts.
+        play.setMinWidth(ui.dp(92));
+        play.setMinimumWidth(ui.dp(92));
+        play.setForegroundGravity(Gravity.CENTER);
         play.setOnClickListener(v -> {
             if (selected == station && playback.active) setPlayerOpen(true);
             else { captureQueue(); playStation(station, true); }
@@ -517,10 +520,10 @@ public class MainActivity extends Activity {
             boolean active = selected != null && entry.getKey().equals(selected.name) && playback.active;
             RowViews row = entry.getValue();
             row.row.setBackground(ui.surface(active ? SAGE : Color.TRANSPARENT, 10, null));
-            row.play.setText(getString(active ? (playback.live ? R.string.playing : playback.label) : R.string.play_button));
+            row.play.setText(active ? getString(playback.live ? R.string.playing : playback.label) : "");
             row.play.setTextSize(active ? 15 : 17);
             row.play.setTextColor(active ? GREEN : Color.WHITE);
-            row.play.setCompoundDrawables(active ? null : ui.icon(R.drawable.ic_ui_play, Color.WHITE, 18), null, null, null);
+            row.play.setForeground(active ? null : ui.icon(R.drawable.ic_ui_play, Color.WHITE, 24));
             ui.clickable(row.play, active ? Color.TRANSPARENT : GREEN, 8, null);
             row.play.setContentDescription(getString(active ? R.string.open_player_accessibility : R.string.play_accessibility, entry.getKey()));
         }

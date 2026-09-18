@@ -76,7 +76,7 @@ create signing keys automatically.
 
 ## Project details
 
-- Current version: **1.4.2** (version code 7)
+- Current version: **1.4.3** (version code 8)
 - Android 7.0 (API 24) or newer; targets Android 16 (API 36)
 - Package: `com.oai.singaporeradio`
 - Native Java Android UI
@@ -87,6 +87,10 @@ create signing keys automatically.
 - `PlayerTransition.java`: gentle player navigation with lifecycle and reduced-motion handling
 - `RadioService.java`: streaming, background playback, audio focus, and connection handling
 - `StationData.java`: immutable station catalog, language filters and broadcaster stream endpoints
+
+Version 1.4.3 removes the visible Play text from station-row buttons, leaving a
+centred white triangle on the green button. Accessible station-specific labels
+and the active station's Playing/Connecting/Buffering feedback remain available.
 
 Version 1.4.2 adds the approved 280 ms rise-and-fade transition when opening the
 Focus Player, with a 224 ms return to browsing. Playback continues through
